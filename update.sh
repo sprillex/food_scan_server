@@ -42,7 +42,6 @@ fi
 count=0
 for line in "${display_lines[@]}"; do
     echo "  [$count] $line"
-    # FIXED: Use standard math to avoid 'set -e' killing the script on 0
     count=$((count+1))
 done
 echo "------------------------------------------------"
@@ -52,7 +51,7 @@ if [ $count -eq 0 ]; then
     exit 1
 fi
 
-# --- NEW AUTO-SELECT LOGIC START ---
+# --- AUTO-SELECT LOGIC START ---
 if [ $count -eq 1 ]; then
     echo "ℹ️  Only one branch found. Automatically selecting it..."
     choice=0
@@ -60,7 +59,7 @@ else
     # Read user input if there is more than one option
     read -p "Select the branch number to install: " choice
 fi
-# --- NEW AUTO-SELECT LOGIC END ---
+# --- AUTO-SELECT LOGIC END ---
 
 # Validate input
 if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ -z "${branches[$choice]}" ]; then
@@ -91,7 +90,8 @@ git pull origin "$LOCAL_BRANCH_NAME"
 
 # 5. Update dependencies
 echo "📦 Updating python dependencies..."
-# Uninstall legacy google-generativeai to avoid namespace conflicts
+# Note: -y is used here to uninstall the package without asking for confirmation 
+# to ensure the update script runs smoothly without user intervention.
 ./venv/bin/pip uninstall -y google-generativeai || true
 # Install requirements (ensures google-genai is present)
 ./venv/bin/pip install -r requirements.txt
