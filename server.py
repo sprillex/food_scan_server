@@ -2,114 +2,52 @@ import os
 import shutil
 import uuid
 import json
-import sqlite3
-from fastapi import FastAPI, File, UploadFile
-import google.generativeai as genai
+import asyncio
+import logging
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
+from PIL import Image
+
+import database
 
 # --- CONFIGURATION ---
 load_dotenv()
-API_KEY = os.getenv("GEMINI_API_KEY")
 
-if not API_KEY:
-    print("❌ ERROR: GEMINI_API_KEY not found in .env file.")
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-genai.configure(api_key=API_KEY)
-
-# Using 'gemini-flash-latest' for the best balance of free-tier access and speed
-model = genai.GenerativeModel('gemini-flash-latest')
+# Initialize GenAI Client
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 app = FastAPI()
 
 # Directories
 IMAGE_ROOT = "images"
 PROMPT_DIR = "prompts"
-DB_FILE = "food_knowledge.db"
-
-# Ensure directories exist
-os.makedirs(IMAGE_ROOT, exist_ok=True)
-os.makedirs(PROMPT_DIR, exist_ok=True)
-
-# --- DATABASE SETUP ---
-def init_db():
-    """Creates the table with all nutritional columns if it doesn't exist."""
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS products (
-        upc TEXT PRIMARY KEY,
-        item_name TEXT,
-        calories INTEGER,
-        fat_g REAL,
-        carbs_g REAL,
-        protein_g REAL,
-        fiber_g REAL,
-        sodium_mg INTEGER,
-        brand_name TEXT,
-        last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
-    )''')
-    conn.commit()
-    conn.close()
 
 # Run immediately on startup
-init_db()
+database.init_db()
 
-# --- DB HELPER FUNCTIONS ---
-def get_product_from_db(upc):
-    """Retrieves a product by UPC from the local SQLite database."""
-    if not upc: return None
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute("SELECT * FROM products WHERE upc = ?", (upc,))
-    row = c.fetchone()
-    conn.close()
-    if row:
-        return dict(row)
-    return None
-
-def save_product_to_db(data):
-    """Parses Gemini JSON response and saves to DB if a valid UPC is found."""
+def validate_and_save_image(file_obj, path):
+    """Validates that the file is an image and saves it."""
     try:
-        # We expect the data structure: {'variables': {'Item Name': {'upc': '...', ...}}}
-        vars_block = data.get("variables", {})
-        if not vars_block: 
-            return
-        
-        # Get the first item in the variables list
-        first_key = next(iter(vars_block))
-        item_data = vars_block[first_key]
-        
-        upc = item_data.get("upc")
-        
-        # Validation: Don't save if there is no UPC
-        if not upc or upc == "null":
-            print("   ⚠️ No UPC found in analysis. Not saving to DB.")
-            return
+        # Verify it's an image
+        with Image.open(file_obj) as img:
+            img.verify()
 
-        print(f"   💾 [LEARNING] Saving '{first_key}' (UPC: {upc}) to Database.")
-        
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
-        
-        # Insert or Overwrite the data
-        c.execute('''INSERT OR REPLACE INTO products 
-            (upc, item_name, calories, fat_g, carbs_g, protein_g, fiber_g, sodium_mg, brand_name)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
-            (
-                str(upc),
-                item_data.get("name", first_key),
-                item_data.get("calories", 0),
-                item_data.get("fat", 0),
-                item_data.get("carbohydrates", 0),
-                item_data.get("protein", 0),
-                item_data.get("fiber", 0),
-                item_data.get("sodium", 0),
-                item_data.get("brand_name", "Unknown")
-            ))
-        conn.commit()
-        conn.close()
+        # Reset file pointer after verify
+        file_obj.seek(0)
+
+        # Save file
+        with open(path, "wb") as buffer:
+            shutil.copyfileobj(file_obj, buffer)
+
     except Exception as e:
-        print(f"   ⚠️ Database Save Failed: {e}")
+        logger.error(f"Image validation failed: {e}")
+        raise ValueError("Invalid image file.")
 
 # --- API ENDPOINTS ---
 
@@ -130,24 +68,24 @@ async def check_product(upc: str):
 
 @app.post("/analyze")
 async def analyze_evidence(file: UploadFile = File(...)):
-    """
-    Main Endpoint:
-    1. Receives image.
-    2. Sends to Gemini (AI).
-    3. Returns analysis + Saves to DB (Learning).
-    """
-    print(f"\n🔎 [RECEIVING] {file.filename}")
+    logger.info(f"🔎 [RECEIVING] {file.filename}")
 
-    # 1. Save Image Temporarily
+    # 1. Save Image Temporarily with Validation
     case_id = uuid.uuid4().hex[:8]
     case_folder = os.path.join(IMAGE_ROOT, f"scan_{case_id}")
     os.makedirs(case_folder, exist_ok=True)
     image_path = os.path.join(case_folder, "evidence.jpg")
     
-    with open(image_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    try:
+        # Run blocking validation and file IO in thread
+        await asyncio.to_thread(validate_and_save_image, file.file, image_path)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Uploaded file is not a valid image.")
+    except Exception as e:
+        logger.error(f"Error saving file: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save image.")
 
-    # 2. Load Prompt
+    # 2. GENERATE PROMPT
     prompt_path = os.path.join(PROMPT_DIR, "learning.txt")
     if os.path.exists(prompt_path):
         with open(prompt_path, 'r') as f:
@@ -156,36 +94,41 @@ async def analyze_evidence(file: UploadFile = File(...)):
         # Fallback if file is missing
         prompt_text = "Analyze image. Extract UPC and Nutrition. Return valid JSON only."
 
-    # 3. Call Gemini
-    print("   🤖 Asking Gemini to read label...")
+    # 3. CALL GEMINI (New SDK)
+    logger.info("   🤖 Asking Gemini to read label...")
     try:
-        uploaded_file = genai.upload_file(image_path)
-        
-        # Generate content
-        response = model.generate_content([prompt_text, uploaded_file])
+        # With the new SDK, we can pass the image directly if it's small, or upload it.
+        # For compatibility and large files, let's read it as bytes.
+        with open(image_path, "rb") as f:
+            image_bytes = f.read()
+
+        response = await asyncio.to_thread(
+            client.models.generate_content,
+            model='gemini-1.5-flash',
+            contents=[
+                prompt_text,
+                types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")
+            ]
+        )
+
         result_text = response.text
         
-        # 4. Clean & Parse JSON
+        # 4. PARSE RESPONSE
         clean_json = result_text.replace("```json", "").replace("```", "").strip()
         
         try:
             analysis_data = json.loads(clean_json)
             
             # 5. LEARN (Save to DB)
-            save_product_to_db(analysis_data)
+            await asyncio.to_thread(database.save_product_to_db, analysis_data)
             
-            # 6. Return Result
+            # 6. RETURN RESULT
             return {"status": "success", "data": analysis_data, "source": "Gemini API"}
             
         except json.JSONDecodeError:
-            print("   ⚠️ Gemini returned invalid JSON.")
-            print(f"   Raw output: {result_text[:100]}...") # Print first 100 chars for debug
+            logger.warning("   ⚠️ Gemini returned invalid JSON.")
             return {"status": "partial_success", "raw_text": result_text}
 
     except Exception as e:
-        print(f"   🔴 Error: {e}")
+        logger.error(f"   🔴 Error: {e}")
         return {"status": "error", "message": str(e)}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)

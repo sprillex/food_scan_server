@@ -5,7 +5,7 @@ set -e
 echo "🚀 Starting hahealth update..."
 
 # 1. Navigate to directory
-cd /home/dietpi/foodscan
+cd "$(dirname "$0")"
 
 # 2. Fetch latest data
 echo "📡 Fetching latest branch info from remote..."
@@ -94,8 +94,8 @@ echo "📦 Updating python dependencies..."
 ./venv/bin/pip install -r requirements.txt
 
 # 6. Run Database Migrations
-echo "🗄️ Running database migrations..."
-./venv/bin/python3 scripts/migrate_all.py
+# echo "🗄️ Running database migrations..."
+# ./venv/bin/python3 scripts/migrate_all.py
 
 # 7. Restart the systemd service
 echo "🔄 Restarting hahealth service..."
