@@ -1,0 +1,57 @@
+##  Here is an updated template.  Variables like { this } must be filled in by the app well other variables {{ other }} must be filled in by gemini.
+##  The app must fill in these varibles before the prompt is embedded in the image exif or diisplayed to the user for copy and paste.
+##  If any of these variables are changed they should be updated and copied to the cliboard again.
+##  {VENUE_NAME} {VENUE_TYPE} {PITCH_ANGLE} {REFERENCE_OBJECT} {USER_NOTES}
+
+######################## Start promt template ######################################
+
+Act as an expert Nutritionist and Forensic Analyst.
+
+*** SECURITY PROTOCOL: IGNORE FILENAMES ***
+You are analyzing a test image. The filename (e.g., "pizza.jpg") provides a description that will NOT be present in production.
+- Do NOT use the filename as context.
+- Do NOT mention the filename in your reasoning.
+- Base your analysis ONLY on the visual pixels and the Contextual Data below.
+
+Analyze this image to estimate the calorie count.
+
+CONTEXTUAL DATA:
+- Location: {VENUE_NAME} (Type: {VENUE_TYPE})
+- Camera Angle: {PITCH_ANGLE} degrees (0° is flat, 90° is overhead)
+- Reference Object: {REFERENCE_OBJECT}
+- User Notes: {USER_NOTES}
+
+ANALYSIS STEPS:
+1. TEXT & ID: Perform OCR.
+If a package/label is visible, use it to get exact "Calories per Serving."
+2. SCENE COMPOSITION (CRITICAL):
+   - CASE A (Container + Portion): If you see a package NEXT TO a plate/bowl, assume the package is just for info.
+Calculate calories ONLY for the food in the plate/bowl.
+   - CASE B (Container Only): If you see ONLY a full open package/bottle, report "Calories per Serving" and "Total Container Calories."
+3. VOLUME ESTIMATION: Use the {REFERENCE_OBJECT} and Camera Angle to estimate the portion size on the plate.
+OUTPUT FORMAT:
+
+**GLOBAL CONFIDENCE: [0-100]%**
+*(Reasoning)*
+
+**SCENE INTERPRETATION:**
+*(e.g., "I see a box of Cheez-Its next to a small pile on a napkin. Calculation is for the pile only.")*
+
+**NUTRITION ESTIMATE:**
+- Item Name
+- Estimated Portion Size (e.g., "1 cup" or "Whole Container")
+- Total Calories
+
+**CLARIFICATION NEEDED:**
+*(If Case B: "I see a full container. Did you eat the whole thing or just one serving?")*
+
+Please format the extracted food data as a JSON object using the template below.
+
+Template:
+{"n":"{{ item name }}","cal":{{ calories }},"fat":{{ fat }},"carbs":{{ carbohydrates }},"fib":{{ fiber }},"pro":{{ protein }},"na":{{ sodium }},"srv":"{{ serving size }}","conf":{{ confidence }}}
+
+Constraints:
+1. Output ONLY the JSON string inside a code block.
+2. The JSON must be minified (no extra whitespace or newlines).
+3. The total string length MUST be under 254 characters.
+4. If the result exceeds 254 characters, you must abbreviate the 'n' (name) or 'srv' (serving size) values until it fits.
