@@ -2,7 +2,7 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
-echo "🚀 Starting hahealth update..."
+echo "🚀 Starting foodscan update..."
 
 # 1. Navigate to directory
 cd "$(dirname "$0")"
@@ -91,6 +91,9 @@ git pull origin "$LOCAL_BRANCH_NAME"
 
 # 5. Update dependencies
 echo "📦 Updating python dependencies..."
+# Uninstall legacy google-generativeai to avoid namespace conflicts
+./venv/bin/pip uninstall -y google-generativeai || true
+# Install requirements (ensures google-genai is present)
 ./venv/bin/pip install -r requirements.txt
 
 # 6. Run Database Migrations
@@ -98,8 +101,8 @@ echo "📦 Updating python dependencies..."
 # ./venv/bin/python3 scripts/migrate_all.py
 
 # 7. Restart the systemd service
-echo "🔄 Restarting hahealth service..."
-sudo systemctl restart hahealth
+echo "🔄 Restarting foodscan service..."
+sudo systemctl restart foodscan
 
 echo "✅ Update complete! Checking service status..."
-sudo systemctl status hahealth --no-pager
+sudo systemctl status foodscan --no-pager
