@@ -4,9 +4,11 @@ import uuid
 import json
 import asyncio
 import logging
-from fastapi import FastAPI, File, UploadFile
-import google.generativeai as genai
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
+from PIL import Image
 
 import database
 
@@ -17,8 +19,8 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel('gemini-1.5-flash')
+# Initialize GenAI Client
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 app = FastAPI()
 
@@ -29,26 +31,45 @@ PROMPT_DIR = "prompts"
 # Run immediately on startup
 database.init_db()
 
-def save_file_sync(file_obj, path):
-    with open(path, "wb") as buffer:
-        shutil.copyfileobj(file_obj, buffer)
+def validate_and_save_image(file_obj, path):
+    """Validates that the file is an image and saves it."""
+    try:
+        # Verify it's an image
+        with Image.open(file_obj) as img:
+            img.verify()
+
+        # Reset file pointer after verify
+        file_obj.seek(0)
+
+        # Save file
+        with open(path, "wb") as buffer:
+            shutil.copyfileobj(file_obj, buffer)
+
+    except Exception as e:
+        logger.error(f"Image validation failed: {e}")
+        raise ValueError("Invalid image file.")
 
 # --- API ENDPOINT ---
 @app.post("/analyze")
 async def analyze_evidence(file: UploadFile = File(...)):
     logger.info(f"🔎 [RECEIVING] {file.filename}")
 
-    # 1. Save Image Temporarily
+    # 1. Save Image Temporarily with Validation
     case_id = uuid.uuid4().hex[:8]
     case_folder = os.path.join(IMAGE_ROOT, f"scan_{case_id}")
     os.makedirs(case_folder, exist_ok=True)
     image_path = os.path.join(case_folder, f"evidence.jpg")
     
-    # Run blocking file IO in thread
-    # We access file.file which is the underlying blocking file object
-    await asyncio.to_thread(save_file_sync, file.file, image_path)
+    try:
+        # Run blocking validation and file IO in thread
+        await asyncio.to_thread(validate_and_save_image, file.file, image_path)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Uploaded file is not a valid image.")
+    except Exception as e:
+        logger.error(f"Error saving file: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save image.")
 
-    # 3. GENERATE PROMPT
+    # 2. GENERATE PROMPT
     prompt_path = os.path.join(PROMPT_DIR, "learning.txt")
     if os.path.exists(prompt_path):
         with open(prompt_path, 'r') as f:
@@ -57,31 +78,35 @@ async def analyze_evidence(file: UploadFile = File(...)):
         # Fallback Prompt logic
         prompt_text = "Analyze image. Extract UPC, Calories, Fat, Carbs, Protein. Format as JSON variables."
 
-    # 4. CALL GEMINI
+    # 3. CALL GEMINI (New SDK)
     logger.info("   🤖 Asking Gemini to read label...")
     try:
-        # Uploading file to Gemini
-        uploaded_file = await asyncio.to_thread(genai.upload_file, image_path)
+        # With the new SDK, we can pass the image directly if it's small, or upload it.
+        # For compatibility and large files, let's read it as bytes.
+        with open(image_path, "rb") as f:
+            image_bytes = f.read()
 
-        # Generate content
-        # Using generate_content_async if available, else thread
-        if hasattr(model, 'generate_content_async'):
-             response = await model.generate_content_async([prompt_text, uploaded_file])
-        else:
-             response = await asyncio.to_thread(model.generate_content, [prompt_text, uploaded_file])
+        response = await asyncio.to_thread(
+            client.models.generate_content,
+            model='gemini-1.5-flash',
+            contents=[
+                prompt_text,
+                types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")
+            ]
+        )
 
         result_text = response.text
         
-        # 5. PARSE RESPONSE
+        # 4. PARSE RESPONSE
         clean_json = result_text.replace("```json", "").replace("```", "").strip()
         
         try:
             analysis_data = json.loads(clean_json)
             
-            # 6. LEARN (Save to DB)
+            # 5. LEARN (Save to DB)
             await asyncio.to_thread(database.save_product_to_db, analysis_data)
             
-            # 7. RETURN RESULT
+            # 6. RETURN RESULT
             return {"status": "success", "data": analysis_data, "source": "Gemini API"}
             
         except json.JSONDecodeError:

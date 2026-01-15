@@ -1,0 +1,15 @@
+[Unit]
+Description=Food Scan Server (HaHealth)
+After=network.target
+
+[Service]
+Type=simple
+User=dietpi
+WorkingDirectory=/home/dietpi/foodscan
+ExecStart=/home/dietpi/foodscan/venv/bin/uvicorn server:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+EnvironmentFile=/home/dietpi/foodscan/.env
+
+[Install]
+WantedBy=multi-user.target

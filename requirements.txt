@@ -3,5 +3,5 @@ uvicorn
 python-multipart
 piexif
 Pillow
-google-generativeai
+google-genai
 python-dotenv
