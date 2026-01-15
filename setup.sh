@@ -21,7 +21,7 @@ echo "📦 Installing dependencies..."
 
 # Setup Systemd Service
 echo "🔧 Configuring systemd service..."
-SERVICE_FILE="hahealth.service"
+SERVICE_FILE="foodscan.service"
 TARGET_DIR="/etc/systemd/system"
 
 # Edit the service file to reflect current directory if needed
@@ -37,8 +37,8 @@ fi
 
 sudo cp $SERVICE_FILE $TARGET_DIR/
 sudo systemctl daemon-reload
-sudo systemctl enable hahealth
-sudo systemctl restart hahealth
+sudo systemctl enable foodscan
+sudo systemctl restart foodscan
 
 echo "✅ Setup complete! Service is running."
-sudo systemctl status hahealth --no-pager
+sudo systemctl status foodscan --no-pager

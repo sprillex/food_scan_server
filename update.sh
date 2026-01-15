@@ -2,7 +2,7 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
-echo "🚀 Starting hahealth update..."
+echo "🚀 Starting foodscan update..."
 
 # 1. Navigate to directory
 cd "$(dirname "$0")"
@@ -101,8 +101,8 @@ echo "📦 Updating python dependencies..."
 # ./venv/bin/python3 scripts/migrate_all.py
 
 # 7. Restart the systemd service
-echo "🔄 Restarting hahealth service..."
-sudo systemctl restart hahealth
+echo "🔄 Restarting foodscan service..."
+sudo systemctl restart foodscan
 
 echo "✅ Update complete! Checking service status..."
-sudo systemctl status hahealth --no-pager
+sudo systemctl status foodscan --no-pager

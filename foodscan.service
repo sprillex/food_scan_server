@@ -1,5 +1,5 @@
 [Unit]
-Description=Food Scan Server (HaHealth)
+Description=Food Scan Server
 After=network.target
 
 [Service]
