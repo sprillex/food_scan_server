@@ -17,6 +17,8 @@ Use this exact JSON structure:
       "fat": {{FAT_GRAMS}},
       "carbohydrates": {{CARBS_GRAMS}},
       "protein": {{PROTEIN_GRAMS}},
+      "fiber": {{FIBER_GRAMS}},
+      "sodium": {{SODIUM_MG}},
       "serving_size": "{{SERVING_TEXT}}"
     }
   }
