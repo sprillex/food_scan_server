@@ -91,6 +91,9 @@ git pull origin "$LOCAL_BRANCH_NAME"
 
 # 5. Update dependencies
 echo "📦 Updating python dependencies..."
+# Uninstall legacy google-generativeai to avoid namespace conflicts
+./venv/bin/pip uninstall -y google-generativeai || true
+# Install requirements (ensures google-genai is present)
 ./venv/bin/pip install -r requirements.txt
 
 # 6. Run Database Migrations
