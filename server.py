@@ -49,7 +49,23 @@ def validate_and_save_image(file_obj, path):
         logger.error(f"Image validation failed: {e}")
         raise ValueError("Invalid image file.")
 
-# --- API ENDPOINT ---
+# --- API ENDPOINTS ---
+
+@app.get("/product/{upc}")
+async def check_product(upc: str):
+    """
+    Android Phase 5 Endpoint:
+    Checks if we already know this UPC. 
+    Returns the data if found, or a 404-like status if not.
+    """
+    print(f"🔎 [LOOKUP] Checking DB for UPC: {upc}")
+    result = get_product_from_db(upc)
+    
+    if result:
+        return {"status": "found", "data": result, "source": "Local DB"}
+    else:
+        return {"status": "not_found", "message": "Item unknown. Please scan label."}
+
 @app.post("/analyze")
 async def analyze_evidence(file: UploadFile = File(...)):
     logger.info(f"🔎 [RECEIVING] {file.filename}")
@@ -58,7 +74,7 @@ async def analyze_evidence(file: UploadFile = File(...)):
     case_id = uuid.uuid4().hex[:8]
     case_folder = os.path.join(IMAGE_ROOT, f"scan_{case_id}")
     os.makedirs(case_folder, exist_ok=True)
-    image_path = os.path.join(case_folder, f"evidence.jpg")
+    image_path = os.path.join(case_folder, "evidence.jpg")
     
     try:
         # Run blocking validation and file IO in thread
@@ -75,8 +91,8 @@ async def analyze_evidence(file: UploadFile = File(...)):
         with open(prompt_path, 'r') as f:
             prompt_text = f.read()
     else:
-        # Fallback Prompt logic
-        prompt_text = "Analyze image. Extract UPC, Calories, Fat, Carbs, Protein. Format as JSON variables."
+        # Fallback if file is missing
+        prompt_text = "Analyze image. Extract UPC and Nutrition. Return valid JSON only."
 
     # 3. CALL GEMINI (New SDK)
     logger.info("   🤖 Asking Gemini to read label...")
