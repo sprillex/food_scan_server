@@ -1,1 +1,20 @@
+# Security (CRITICAL)
 .env
+
+# Database (Local data should not go to cloud)
+food_knowledge.db
+
+# Python cache files (Junk files)
+__pycache__/
+*.pyc
+
+# Virtual Environment
+venv/
+.venv/
+
+# Local Image Storage (Don't upload test photos)
+images/
+server_images/
+
+# System files
+.DS_Store.env
