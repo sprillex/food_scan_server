@@ -1,0 +1,1 @@
+fastapi, uvicorn, python-multipart, piexif, Pillow, google-generativeai, python-dotenv
