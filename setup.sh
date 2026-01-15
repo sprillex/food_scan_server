@@ -25,9 +25,11 @@ if [ -f "hahealth.service" ] && [ ! -f "foodscan.service" ]; then
     mv hahealth.service foodscan.service
 fi
 
-if systemctl is-active --quiet hahealth || systemctl is-enabled --quiet hahealth; then
-    echo "⚠️  Stopping and disabling old 'hahealth' service..."
-    sudo systemctl stop hahealth || true
+if systemctl is-active --quiet hahealth; then
+    echo "⚠️  Old service 'hahealth' is currently RUNNING. Skipping migration/cleanup to avoid interruption."
+    echo "    Please stop it manually if you wish to migrate: sudo systemctl stop hahealth"
+elif systemctl is-enabled --quiet hahealth; then
+    echo "⚠️  Old service 'hahealth' is ENABLED but not running. Disabling and cleaning up..."
     sudo systemctl disable hahealth || true
     if [ -f "/etc/systemd/system/hahealth.service" ]; then
         echo "🗑️  Removing old hahealth service file from system..."
