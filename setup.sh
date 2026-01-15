@@ -19,9 +19,29 @@ fi
 echo "📦 Installing dependencies..."
 ./venv/bin/pip install -r requirements.txt
 
+# --- MIGRATION: Handle rename from hahealth ---
+if [ -f "hahealth.service" ] && [ ! -f "foodscan.service" ]; then
+    echo "⚠️  Found old service file 'hahealth.service'. Renaming to 'foodscan.service'..."
+    mv hahealth.service foodscan.service
+fi
+
+if systemctl is-active --quiet hahealth; then
+    echo "⚠️  Old service 'hahealth' is currently RUNNING. Skipping migration/cleanup to avoid interruption."
+    echo "    Please stop it manually if you wish to migrate: sudo systemctl stop hahealth"
+elif systemctl is-enabled --quiet hahealth; then
+    echo "⚠️  Old service 'hahealth' is ENABLED but not running. Disabling and cleaning up..."
+    sudo systemctl disable hahealth || true
+    if [ -f "/etc/systemd/system/hahealth.service" ]; then
+        echo "🗑️  Removing old hahealth service file from system..."
+        sudo rm /etc/systemd/system/hahealth.service
+        sudo systemctl daemon-reload
+    fi
+fi
+# ----------------------------------------------
+
 # Setup Systemd Service
 echo "🔧 Configuring systemd service..."
-SERVICE_FILE="hahealth.service"
+SERVICE_FILE="foodscan.service"
 TARGET_DIR="/etc/systemd/system"
 
 # Edit the service file to reflect current directory if needed
@@ -37,8 +57,8 @@ fi
 
 sudo cp $SERVICE_FILE $TARGET_DIR/
 sudo systemctl daemon-reload
-sudo systemctl enable hahealth
-sudo systemctl restart hahealth
+sudo systemctl enable foodscan
+sudo systemctl restart foodscan
 
 echo "✅ Setup complete! Service is running."
-sudo systemctl status hahealth --no-pager
+sudo systemctl status foodscan --no-pager

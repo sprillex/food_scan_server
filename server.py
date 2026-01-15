@@ -59,7 +59,7 @@ async def check_product(upc: str):
     Returns the data if found, or a 404-like status if not.
     """
     print(f"🔎 [LOOKUP] Checking DB for UPC: {upc}")
-    result = get_product_from_db(upc)
+    result = database.get_product_from_db(upc)
     
     if result:
         return {"status": "found", "data": result, "source": "Local DB"}
@@ -104,7 +104,7 @@ async def analyze_evidence(file: UploadFile = File(...)):
 
         response = await asyncio.to_thread(
             client.models.generate_content,
-            model='gemini-1.5-flash',
+            model='gemini-2.0-flash',
             contents=[
                 prompt_text,
                 types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")
