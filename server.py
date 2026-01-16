@@ -16,7 +16,14 @@ import database
 load_dotenv()
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[
+        logging.FileHandler("foodscan.log"),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
 
 # Initialize GenAI Client
@@ -46,7 +53,7 @@ def validate_and_save_image(file_obj, path):
             shutil.copyfileobj(file_obj, buffer)
 
     except Exception as e:
-        logger.error(f"Image validation failed: {e}")
+        logger.exception(f"Image validation failed: {e}")
         raise ValueError("Invalid image file.")
 
 # --- API ENDPOINTS ---
@@ -82,7 +89,7 @@ async def analyze_evidence(file: UploadFile = File(...)):
     except ValueError:
         raise HTTPException(status_code=400, detail="Uploaded file is not a valid image.")
     except Exception as e:
-        logger.error(f"Error saving file: {e}")
+        logger.exception(f"Error saving file: {e}")
         raise HTTPException(status_code=500, detail="Failed to save image.")
 
     # 2. GENERATE PROMPT
@@ -130,5 +137,5 @@ async def analyze_evidence(file: UploadFile = File(...)):
             return {"status": "partial_success", "raw_text": result_text}
 
     except Exception as e:
-        logger.error(f"   🔴 Error: {e}")
+        logger.exception(f"   🔴 Error: {e}")
         return {"status": "error", "message": str(e)}
