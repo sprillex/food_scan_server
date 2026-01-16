@@ -2,7 +2,6 @@ import sqlite3
 import logging
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 DB_FILE = "food_knowledge.db"
@@ -96,4 +95,4 @@ def save_product_to_db(data):
         conn.commit()
         conn.close()
     except Exception as e:
-        logger.error(f"⚠️ Database Save Failed: {e}")
+        logger.exception(f"⚠️ Database Save Failed: {e}")
