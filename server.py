@@ -119,7 +119,7 @@ async def analyze_evidence(file: UploadFile = File(...)):
             try:
                 response = await asyncio.to_thread(
                     client.models.generate_content,
-                    model='gemini-1.5-flash',
+                    model='gemini-1.5-flash-001',
                     contents=[
                         prompt_text,
                         types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")
