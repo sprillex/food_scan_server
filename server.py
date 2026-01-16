@@ -7,7 +7,6 @@ import logging
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from google import genai
 from google.genai import types
-from google.genai.errors import ClientError
 from dotenv import load_dotenv
 from PIL import Image
 
@@ -110,32 +109,14 @@ async def analyze_evidence(file: UploadFile = File(...)):
         with open(image_path, "rb") as f:
             image_bytes = f.read()
 
-        # Retry logic for 429 Rate Limits
-        max_retries = 3
-        base_delay = 5  # Start with 5 seconds
-        response = None
-
-        for attempt in range(max_retries):
-            try:
-                response = await asyncio.to_thread(
-                    client.models.generate_content,
-                    model='gemini-1.5-flash-001',
-                    contents=[
-                        prompt_text,
-                        types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")
-                    ]
-                )
-                break  # Success, exit loop
-            except ClientError as e:
-                if e.code == 429:
-                    if attempt < max_retries - 1:
-                        wait_time = base_delay * (2 ** attempt)
-                        logger.warning(f"   ⏳ Rate limited (429). Retrying in {wait_time}s... (Attempt {attempt + 1}/{max_retries})")
-                        await asyncio.sleep(wait_time)
-                        continue
-                raise e  # Re-raise if not 429 or max retries reached
-            except Exception as e:
-                raise e # Re-raise other exceptions
+        response = await asyncio.to_thread(
+            client.models.generate_content,
+            model='gemini-2.5-flash',
+            contents=[
+                prompt_text,
+                types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")
+            ]
+        )
 
         result_text = response.text
         
