@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch, AsyncMock
 # Mock database before importing server
 sys.modules['database'] = MagicMock()
 
-# Set dummy API key
+# Set dummy API key for server module import side-effects
 os.environ["GEMINI_API_KEY"] = "fake_key"
 
 # Add parent directory to path
