@@ -7,6 +7,7 @@ import logging
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from google import genai
 from google.genai import types
+from google.genai.errors import ClientError
 from dotenv import load_dotenv
 from PIL import Image
 
