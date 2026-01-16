@@ -18,3 +18,6 @@ server_images/
 
 # System files
 .DS_Store.env
+
+# Logs
+foodscan.log
