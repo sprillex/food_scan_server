@@ -15,32 +15,26 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS products (
         upc TEXT PRIMARY KEY,
         item_name TEXT,
+        brand_name TEXT,
+        srv_per_cont REAL,
         calories INTEGER,
         fat_g REAL,
-        carbs_g REAL,
-        protein_g REAL,
-        fiber_g REAL,
+        cholesterol_mg REAL,
         sodium_mg REAL,
-        brand_name TEXT
+        carbs_g REAL,
+        fiber_g REAL,
+        total_sugars_g REAL,
+        added_sugars_g REAL,
+        protein_g REAL,
+        vit_d_mcg REAL,
+        calcium_mg REAL,
+        iron_mg REAL,
+        potassium_mg REAL,
+        serving_size TEXT,
+        score_color TEXT,
+        health_insight TEXT,
+        pairing_tip TEXT
     )''')
-
-    # Check for missing columns and add them if necessary (simple migration)
-    c.execute("PRAGMA table_info(products)")
-    existing_columns = [info[1] for info in c.fetchall()]
-
-    if 'fiber_g' not in existing_columns:
-        logger.info("Migrating database: Adding fiber_g column")
-        try:
-            c.execute("ALTER TABLE products ADD COLUMN fiber_g REAL")
-        except sqlite3.OperationalError as e:
-            logger.error(f"Could not add fiber_g column: {e}")
-
-    if 'sodium_mg' not in existing_columns:
-        logger.info("Migrating database: Adding sodium_mg column")
-        try:
-            c.execute("ALTER TABLE products ADD COLUMN sodium_mg REAL")
-        except sqlite3.OperationalError as e:
-            logger.error(f"Could not add sodium_mg column: {e}")
 
     conn.commit()
     conn.close()
@@ -60,7 +54,7 @@ def get_product_from_db(upc):
 def save_product_to_db(data):
     """Parses Gemini JSON response and saves to DB if UPC exists."""
     try:
-        # Expecting data to look like: {'variables': {'Granola Bar': {'upc': '...', ...}}}
+        # Expecting data to look like: {'variables': {'Granola Bar': {'metadata': {...}, 'macros': {...}, ...}}}
         vars_block = data.get("variables", {})
         if not vars_block:
              logger.warning("No 'variables' block found in data.")
@@ -69,7 +63,18 @@ def save_product_to_db(data):
         first_key = next(iter(vars_block)) # e.g., "Chewy Granola Bar"
         item_data = vars_block[first_key]
 
-        upc = item_data.get("upc")
+        # Extract sections
+        metadata = item_data.get("metadata", {})
+        macros = item_data.get("macros", {})
+        micros = item_data.get("micros", {})
+        serving_info = item_data.get("serving_info", {})
+        analysis = item_data.get("analysis", {})
+
+        upc = metadata.get("upc")
+        if not upc or upc == "null":
+             # Fallback to top level if not in metadata, or legacy structure
+            upc = item_data.get("upc")
+
         if not upc or upc == "null":
             logger.warning("⚠️ No UPC found in analysis. Not saving to DB.")
             return
@@ -79,18 +84,36 @@ def save_product_to_db(data):
         conn = sqlite3.connect(DB_FILE)
         c = conn.cursor()
         c.execute('''INSERT OR REPLACE INTO products
-            (upc, item_name, calories, fat_g, carbs_g, protein_g, fiber_g, sodium_mg, brand_name)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+            (upc, item_name, brand_name, srv_per_cont,
+             calories, fat_g, cholesterol_mg, sodium_mg, carbs_g, fiber_g, total_sugars_g, added_sugars_g, protein_g,
+             vit_d_mcg, calcium_mg, iron_mg, potassium_mg,
+             serving_size, score_color, health_insight, pairing_tip)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
             (
                 str(upc),
-                item_data.get("name", first_key),
-                item_data.get("calories", 0),
-                item_data.get("fat", 0),
-                item_data.get("carbohydrates", 0),
-                item_data.get("protein", 0),
-                item_data.get("fiber", 0),
-                item_data.get("sodium", 0),
-                item_data.get("brand_name", "Unknown")
+                metadata.get("name", first_key),
+                metadata.get("brand"),
+                metadata.get("srv_per_cont"),
+
+                macros.get("calories"),
+                macros.get("fat_g"),
+                macros.get("cholesterol_mg"),
+                macros.get("sodium_mg"),
+                macros.get("carbs_g"),
+                macros.get("fiber_g"),
+                macros.get("total_sugars_g"),
+                macros.get("added_sugars_g"),
+                macros.get("protein_g"),
+
+                micros.get("vit_d_mcg"),
+                micros.get("calcium_mg"),
+                micros.get("iron_mg"),
+                micros.get("potassium_mg"),
+
+                serving_info.get("size"),
+                analysis.get("score_color"),
+                analysis.get("health_insight"),
+                analysis.get("pairing_tip")
             ))
         conn.commit()
         conn.close()
