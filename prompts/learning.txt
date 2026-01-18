@@ -1,25 +1,47 @@
-Act as a Data Entry Specialist. Your goal is to digitize the Nutrition Facts label and Barcode from this image.
+Act as a Data Entry Specialist and Clinical Nutritionist. Your goal is to digitize the Nutrition Facts label and Barcode from this image.
 
 INSTRUCTIONS:
 1. SCAN BARCODE: Look for the UPC/EAN barcode (12 or 13 digits). If visible, extract it.
-2. OCR LABEL: Extract the standard nutrition values per serving.
-3. OUTPUT FORMAT: Return ONLY valid JSON. Do not include markdown formatting or chat text.
+2. OCR LABEL: Extract all standard nutrition values per serving and container.
+3. NUTRITIONAL RATING: Assign a score_color (Green/Yellow/Red) based on nutrient density and a health_insight based on the metabolic impact (ratios of Fiber/Protein vs. Added Sugars/Sodium).
+4. OUTPUT FORMAT: Return ONLY valid JSON. Do not include markdown formatting or chat text.
+
 
 Use this exact JSON structure:
-
 {
   "variables": {
     "{{ITEM_NAME}}": {
-      "name": "{{ITEM_NAME}}",
-      "brand_name": "{{BRAND}}",
-      "upc": "{{UPC_DIGITS}}",
-      "calories": {{CALORIES_INT}},
-      "fat": {{FAT_GRAMS}},
-      "carbohydrates": {{CARBS_GRAMS}},
-      "protein": {{PROTEIN_GRAMS}},
-      "fiber": {{FIBER_GRAMS}},
-      "sodium": {{SODIUM_MG}},
-      "serving_size": "{{SERVING_TEXT}}"
+      "metadata": {
+        "name": "{{ITEM_NAME}}",
+        "brand": "{{BRAND}}",
+        "upc": "{{UPC_DIGITS}}",
+        "srv_per_cont": {{FLOAT}}
+      },
+      "macros": {
+        "calories": {{INT}},
+        "fat_g": {{FLOAT}},
+        "cholesterol_mg": {{FLOAT}},
+        "sodium_mg": {{FLOAT}},
+        "carbs_g": {{FLOAT}},
+        "fiber_g": {{FLOAT}},
+        "total_sugars_g": {{FLOAT}},
+        "added_sugars_g": {{FLOAT}},
+        "protein_g": {{FLOAT}}
+      },
+      "micros": {
+        "vit_d_mcg": {{FLOAT}},
+        "calcium_mg": {{FLOAT}},
+        "iron_mg": {{FLOAT}},
+        "potassium_mg": {{FLOAT}}
+      },
+      "serving_info": {
+        "size": "{{TEXT}}"
+      },
+      "analysis": {
+        "score_color": "{{GREEN_YELLOW_RED}}",
+        "health_insight": "{{ONE_SENTENCE_METABOLIC_IMPACT}}",
+        "pairing_tip": "{{SUGGESTION_TO_IMPROVE_BIOAVAILABILITY}}"
+      }
     }
   }
 }
