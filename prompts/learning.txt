@@ -35,7 +35,9 @@ Use this exact JSON structure:
         "potassium_mg": {{FLOAT}}
       },
       "serving_info": {
-        "size": "{{TEXT}}"
+        "size": "{{TEXT}}",
+        "weight_g": {{FLOAT}},   
+        "volume_ml": {{FLOAT}}   
       },
       "analysis": {
         "score_color": "{{GREEN_YELLOW_RED}}",
