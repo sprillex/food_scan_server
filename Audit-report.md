@@ -39,10 +39,10 @@ The project is a FastAPI backend designed to process images of food labels, extr
    - **Problem:** The setup script modifies `foodscan.service` in place using `sed`. This leaves untracked/modified files in the local Git repository, which can cause issues during updates (e.g., git pull conflicts).
    - **Fix Strategy:** Modified the script to create a temporary copy of the service file at `/tmp/foodscan.service`, applied the `sed` transformations there, moved it to `/etc/systemd/system/`, ensuring the git working directory remains clean.
 
-2. **Missing CORS Configuration**
+2. **Missing CORS Configuration** - **[POSTPONED]**
    - **Location:** `server.py`
    - **Problem:** FastAPI does not have Cross-Origin Resource Sharing (CORS) configured. If a web frontend attempts to call this API, the browser will block the requests.
-   - **Fix Strategy:** Include and configure `CORSMiddleware` in `server.py` to allow appropriate origins, headers, and methods.
+   - **Fix Strategy:** User opted to postpone this for a future update. While configuring `CORSMiddleware` is necessary for web apps, blindly allowing all origins (`*`) could lead to quota exhaustion via malicious sites. It will be implemented securely with specific allowed origins when a web frontend is built.
 
 ## Best Practices
 
