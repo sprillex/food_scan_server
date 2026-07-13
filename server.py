@@ -118,39 +118,54 @@ async def analyze_evidence(background_tasks: BackgroundTasks, file: UploadFile =
 
     # 3. CALL GEMINI (New SDK)
     logger.info("   🤖 Asking Gemini to read label...")
-    try:
-        # With the new SDK, we can pass the image directly if it's small, or upload it.
-        # For compatibility and large files, let's read it as bytes.
-        with open(image_path, "rb") as f:
-            image_bytes = f.read()
 
-        response = await asyncio.to_thread(
-            client.models.generate_content,
-            model='gemini-2.5-flash',
-            contents=[
-                prompt_text,
-                types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")
-            ]
-        )
+    max_retries = 3
+    base_delay = 5 # base delay for backoff
 
-        result_text = response.text
-        
-        # 4. PARSE RESPONSE
-        clean_json = result_text.replace("```json", "").replace("```", "").strip()
-        
+    for attempt in range(1, max_retries + 1):
         try:
-            analysis_data = json.loads(clean_json)
-            
-            # 5. LEARN (Save to DB)
-            await asyncio.to_thread(database.save_product_to_db, analysis_data)
-            
-            # 6. RETURN RESULT
-            return {"status": "success", "data": analysis_data, "source": "Gemini API"}
-            
-        except json.JSONDecodeError:
-            logger.warning("   ⚠️ Gemini returned invalid JSON.")
-            return {"status": "partial_success", "raw_text": result_text}
+            # With the new SDK, we can pass the image directly if it's small, or upload it.
+            # For compatibility and large files, let's read it as bytes.
+            with open(image_path, "rb") as f:
+                image_bytes = f.read()
 
-    except Exception as e:
-        logger.exception(f"   🔴 Error: {e}")
-        return {"status": "error", "message": str(e)}
+            response = await asyncio.to_thread(
+                client.models.generate_content,
+                model='gemini-2.5-flash',
+                contents=[
+                    prompt_text,
+                    types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")
+                ]
+            )
+
+            result_text = response.text
+            
+            # 4. PARSE RESPONSE
+            clean_json = result_text.replace("```json", "").replace("```", "").strip()
+            
+            try:
+                analysis_data = json.loads(clean_json)
+
+                # 5. LEARN (Save to DB)
+                await asyncio.to_thread(database.save_product_to_db, analysis_data)
+
+                # 6. RETURN RESULT
+                return {"status": "success", "data": analysis_data, "source": "Gemini API"}
+
+            except json.JSONDecodeError:
+                logger.warning("   ⚠️ Gemini returned invalid JSON.")
+                return {"status": "partial_success", "raw_text": result_text}
+
+        except ClientError as e:
+            if e.code == 429 and attempt < max_retries:
+                delay = base_delay * attempt
+                logger.warning(f"   ⏳ Rate limited (429). Retrying in {delay}s... (Attempt {attempt}/{max_retries})")
+                await asyncio.sleep(delay)
+                continue
+            
+            logger.exception(f"   🔴 Error: {e}")
+            return {"status": "error", "message": str(e)}
+
+        except Exception as e:
+            logger.exception(f"   🔴 Error: {e}")
+            return {"status": "error", "message": str(e)}

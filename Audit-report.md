@@ -10,10 +10,10 @@ The project is a FastAPI backend designed to process images of food labels, extr
    - **Problem:** Every time an image is uploaded, a new directory (`images/scan_{uuid}`) is created and the image is saved. There is no mechanism to clean up or delete these files after processing. This will inevitably lead to disk space exhaustion.
    - **Fix Strategy:** Implemented `cleanup_image_directory` as a FastAPI `BackgroundTask` to securely delete the temporary files and folder once the Gemini analysis is complete.
 
-2. **Missing API Retry Logic**
+2. **Missing API Retry Logic** - **[RESOLVED]**
    - **Location:** `server.py` (`analyze_evidence`)
    - **Problem:** The test suite includes `tests/test_retry_logic.py`, which explicitly tests for the presence of a retry loop with exponential backoff when the Gemini API returns an HTTP 429 (Too Many Requests) error. However, `server.py` does not currently implement any retry logic, causing transient errors to immediately fail the request.
-   - **Fix Strategy:** Implement an asynchronous retry loop around the `client.models.generate_content` call, catching `ClientError`, verifying the status code, and using `asyncio.sleep` to back off before retrying.
+   - **Fix Strategy:** Implemented an asynchronous retry loop around the `client.models.generate_content` call, catching `ClientError`, verifying the 429 status code, and using `asyncio.sleep` with backoff before retrying (up to 3 attempts).
 
 3. **Missing File Size Validation**
    - **Location:** `server.py` (`/analyze` endpoint)
