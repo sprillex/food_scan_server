@@ -44,7 +44,9 @@ class TestRetryLogic(unittest.IsolatedAsyncioTestCase):
             # Patch asyncio.sleep to check if it was called and avoid waiting
             with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
 
-                result = await server.analyze_evidence(file=mock_file)
+                mock_bg_tasks = MagicMock()
+
+                result = await server.analyze_evidence(background_tasks=mock_bg_tasks, file=mock_file)
 
                 # Assertions
                 self.assertEqual(result['status'], 'success')
@@ -71,7 +73,9 @@ class TestRetryLogic(unittest.IsolatedAsyncioTestCase):
 
              with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
 
-                 result = await server.analyze_evidence(file=mock_file)
+                 mock_bg_tasks = MagicMock()
+
+                 result = await server.analyze_evidence(background_tasks=mock_bg_tasks, file=mock_file)
 
                  # Assertions
                  self.assertEqual(result['status'], 'error')

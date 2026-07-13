@@ -74,8 +74,19 @@ async def check_product(upc: str):
     else:
         return {"status": "not_found", "message": "Item unknown. Please scan label."}
 
+from fastapi import BackgroundTasks
+
+def cleanup_image_directory(folder_path: str):
+    """Securely deletes the temporary image directory."""
+    try:
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)
+            logger.info(f"🧹 Cleaned up temporary directory: {folder_path}")
+    except Exception as e:
+        logger.exception(f"Failed to clean up directory {folder_path}: {e}")
+
 @app.post("/analyze")
-async def analyze_evidence(file: UploadFile = File(...)):
+async def analyze_evidence(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     logger.info(f"🔎 [RECEIVING] {file.filename}")
 
     # 1. Save Image Temporarily with Validation
@@ -84,6 +95,9 @@ async def analyze_evidence(file: UploadFile = File(...)):
     os.makedirs(case_folder, exist_ok=True)
     image_path = os.path.join(case_folder, "evidence.jpg")
     
+    # Schedule cleanup to run after response is returned
+    background_tasks.add_task(cleanup_image_directory, case_folder)
+
     try:
         # Run blocking validation and file IO in thread
         await asyncio.to_thread(validate_and_save_image, file.file, image_path)
