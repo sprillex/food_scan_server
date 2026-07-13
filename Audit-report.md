@@ -22,15 +22,15 @@ The project is a FastAPI backend designed to process images of food labels, extr
 
 ## Documentation Audit
 
-1. **Empty README.md**
+1. **Empty README.md** - **[RESOLVED]**
    - **Location:** `README.md`
    - **Problem:** The README currently only contains the project title (`# food_scan_server`).
-   - **Fix Strategy:** Expand the README to include prerequisites, environment setup (e.g., `GEMINI_API_KEY`), installation steps, API documentation (with example requests and responses), and testing instructions.
+   - **Fix Strategy:** Updated the README to include a project description, setup instructions, API endpoint documentation, and testing instructions.
 
-2. **Missing Systemd Configuration Documentation**
+2. **Missing Systemd Configuration Documentation** - **[RESOLVED]**
    - **Location:** `foodscan.service`, `setup.sh`
    - **Problem:** The setup scripts automate service deployment, but there's no documentation explaining how to view logs or manage the service manually.
-   - **Fix Strategy:** Document `systemctl` commands and `journalctl` log viewing in the README.
+   - **Fix Strategy:** Added a dedicated "Systemd Service Management" section to the README detailing `systemctl` and `journalctl` commands.
 
 ## Optimization Suggestions
 

@@ -4,7 +4,7 @@ import uuid
 import json
 import asyncio
 import logging
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
 from google import genai
 from google.genai import types
 from google.genai.errors import ClientError
@@ -74,7 +74,6 @@ async def check_product(upc: str):
     else:
         return {"status": "not_found", "message": "Item unknown. Please scan label."}
 
-from fastapi import BackgroundTasks
 
 def cleanup_image_directory(folder_path: str):
     """Securely deletes the temporary image directory."""
