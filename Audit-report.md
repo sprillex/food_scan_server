@@ -34,10 +34,10 @@ The project is a FastAPI backend designed to process images of food labels, extr
 
 ## Optimization Suggestions
 
-1. **Git Tree Pollution in `setup.sh`**
+1. **Git Tree Pollution in `setup.sh`** - **[RESOLVED]**
    - **Location:** `setup.sh`
    - **Problem:** The setup script modifies `foodscan.service` in place using `sed`. This leaves untracked/modified files in the local Git repository, which can cause issues during updates (e.g., git pull conflicts).
-   - **Fix Strategy:** Modify the script to create a temporary copy of the service file (e.g., `/tmp/foodscan.service`), apply the `sed` transformations there, copy it to `/etc/systemd/system/`, and then remove the temporary file.
+   - **Fix Strategy:** Modified the script to create a temporary copy of the service file at `/tmp/foodscan.service`, applied the `sed` transformations there, moved it to `/etc/systemd/system/`, ensuring the git working directory remains clean.
 
 2. **Missing CORS Configuration**
    - **Location:** `server.py`

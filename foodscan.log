@@ -132,12 +132,12 @@ google.genai.errors.ClientError: 429 None. {}
 2026-07-13 03:26:00,274 [INFO] server:    🤖 Asking Gemini to read label...
 2026-07-13 03:26:00,275 [WARNING] server:    ⏳ Rate limited (429). Retrying in 5s... (Attempt 1/3)
 2026-07-13 03:26:00,277 [WARNING] server:    ⏳ Rate limited (429). Retrying in 10s... (Attempt 2/3)
-2026-07-13 03:29:16,992 [INFO] database: 💾 [LEARNING] Saving Test Item (UPC: 999999999999) to Database.
-2026-07-13 03:29:17,001 [INFO] server: 🔎 [RECEIVING] test.jpg
-2026-07-13 03:29:17,005 [INFO] server:    🤖 Asking Gemini to read label...
-2026-07-13 03:29:17,006 [WARNING] server:    ⏳ Rate limited (429). Retrying in 5s... (Attempt 1/3)
-2026-07-13 03:29:17,007 [WARNING] server:    ⏳ Rate limited (429). Retrying in 10s... (Attempt 2/3)
-2026-07-13 03:29:17,008 [ERROR] server:    🔴 Error: 429 None. {}
+2026-07-13 03:40:01,533 [INFO] database: 💾 [LEARNING] Saving Test Item (UPC: 999999999999) to Database.
+2026-07-13 03:40:01,547 [INFO] server: 🔎 [RECEIVING] test.jpg
+2026-07-13 03:40:01,552 [INFO] server:    🤖 Asking Gemini to read label...
+2026-07-13 03:40:01,554 [WARNING] server:    ⏳ Rate limited (429). Retrying in 5s... (Attempt 1/3)
+2026-07-13 03:40:01,555 [WARNING] server:    ⏳ Rate limited (429). Retrying in 10s... (Attempt 2/3)
+2026-07-13 03:40:01,556 [ERROR] server:    🔴 Error: 429 None. {}
 Traceback (most recent call last):
   File "/app/server.py", line 148, in analyze_evidence
     response = await asyncio.to_thread(
@@ -191,7 +191,7 @@ Traceback (most recent call last):
   File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
     raise effect
 google.genai.errors.ClientError: 429 None. {}
-2026-07-13 03:29:17,018 [INFO] server: 🔎 [RECEIVING] test.jpg
-2026-07-13 03:29:17,020 [INFO] server:    🤖 Asking Gemini to read label...
-2026-07-13 03:29:17,021 [WARNING] server:    ⏳ Rate limited (429). Retrying in 5s... (Attempt 1/3)
-2026-07-13 03:29:17,022 [WARNING] server:    ⏳ Rate limited (429). Retrying in 10s... (Attempt 2/3)
+2026-07-13 03:40:01,569 [INFO] server: 🔎 [RECEIVING] test.jpg
+2026-07-13 03:40:01,572 [INFO] server:    🤖 Asking Gemini to read label...
+2026-07-13 03:40:01,574 [WARNING] server:    ⏳ Rate limited (429). Retrying in 5s... (Attempt 1/3)
+2026-07-13 03:40:01,575 [WARNING] server:    ⏳ Rate limited (429). Retrying in 10s... (Attempt 2/3)

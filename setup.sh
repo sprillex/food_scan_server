@@ -39,17 +39,21 @@ CURRENT_DIR=$(pwd)
 
 # We define the default expected path to check against
 DEFAULT_PATH="/home/dietpi/foodscan"
+TMP_SERVICE_FILE="/tmp/$SERVICE_FILE"
+
+echo "📋 Preparing service file..."
+cp "$SERVICE_FILE" "$TMP_SERVICE_FILE"
 
 if [ "$CURRENT_DIR" != "$DEFAULT_PATH" ]; then
     echo "⚠️  Current directory ($CURRENT_DIR) does not match default ($DEFAULT_PATH)."
     echo "    Updating service file paths..."
     # strict quoting to handle potential spaces in paths, though rare in server setups
-    sed -i "s|$DEFAULT_PATH|$CURRENT_DIR|g" "$SERVICE_FILE"
-    sed -i "s|User=dietpi|User=$USER|g" "$SERVICE_FILE"
+    sed -i "s|$DEFAULT_PATH|$CURRENT_DIR|g" "$TMP_SERVICE_FILE"
+    sed -i "s|User=dietpi|User=$USER|g" "$TMP_SERVICE_FILE"
 fi
 
 echo "📋 Copying service file to systemd directory..."
-sudo cp "$SERVICE_FILE" "$TARGET_DIR/"
+sudo mv "$TMP_SERVICE_FILE" "$TARGET_DIR/"
 sudo systemctl daemon-reload
 sudo systemctl enable foodscan
 sudo systemctl restart foodscan
