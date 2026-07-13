@@ -63,14 +63,17 @@ google.genai.errors.ClientError: 429 None. {}
 2026-01-16 18:39:30,732 [INFO] server:    🤖 Asking Gemini to read label...
 2026-01-16 18:39:30,733 [WARNING] server:    ⏳ Rate limited (429). Retrying in 5s... (Attempt 1/3)
 2026-01-16 18:39:30,735 [WARNING] server:    ⏳ Rate limited (429). Retrying in 10s... (Attempt 2/3)
-2026-07-13 02:37:52,321 [INFO] database: 💾 [LEARNING] Saving Test Item (UPC: 999999999999) to Database.
-2026-07-13 02:37:52,337 [INFO] server: 🔎 [RECEIVING] test.jpg
-2026-07-13 02:37:52,344 [INFO] server:    🤖 Asking Gemini to read label...
-2026-07-13 02:37:52,346 [WARNING] server:    ⏳ Rate limited (429). Retrying in 5s... (Attempt 1/3)
-2026-07-13 02:37:52,348 [WARNING] server:    ⏳ Rate limited (429). Retrying in 10s... (Attempt 2/3)
-2026-07-13 02:37:52,349 [ERROR] server:    🔴 Error: 429 None. {}
+2026-07-13 02:56:38,891 [INFO] database: 💾 [LEARNING] Saving Test Item (UPC: 999999999999) to Database.
+2026-07-13 02:56:38,908 [INFO] server: 🔎 [RECEIVING] test.jpg
+2026-07-13 02:56:38,919 [INFO] server: 🔎 [RECEIVING] test.jpg
+2026-07-13 02:56:56,320 [INFO] database: 💾 [LEARNING] Saving Test Item (UPC: 999999999999) to Database.
+2026-07-13 02:56:56,331 [INFO] server: 🔎 [RECEIVING] test.jpg
+2026-07-13 02:56:56,336 [INFO] server:    🤖 Asking Gemini to read label...
+2026-07-13 02:56:56,337 [WARNING] server:    ⏳ Rate limited (429). Retrying in 5s... (Attempt 1/3)
+2026-07-13 02:56:56,339 [WARNING] server:    ⏳ Rate limited (429). Retrying in 10s... (Attempt 2/3)
+2026-07-13 02:56:56,340 [ERROR] server:    🔴 Error: 429 None. {}
 Traceback (most recent call last):
-  File "/app/server.py", line 132, in analyze_evidence
+  File "/app/server.py", line 149, in analyze_evidence
     response = await asyncio.to_thread(
                ^^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/asyncio/threads.py", line 25, in to_thread
@@ -87,7 +90,7 @@ Traceback (most recent call last):
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
     raise effect
-  File "/app/server.py", line 132, in analyze_evidence
+  File "/app/server.py", line 149, in analyze_evidence
     response = await asyncio.to_thread(
                ^^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/asyncio/threads.py", line 25, in to_thread
@@ -104,7 +107,7 @@ Traceback (most recent call last):
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
     raise effect
-  File "/app/server.py", line 132, in analyze_evidence
+  File "/app/server.py", line 149, in analyze_evidence
     response = await asyncio.to_thread(
                ^^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/asyncio/threads.py", line 25, in to_thread
@@ -122,7 +125,7 @@ Traceback (most recent call last):
   File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
     raise effect
 google.genai.errors.ClientError: 429 None. {}
-2026-07-13 02:37:52,365 [INFO] server: 🔎 [RECEIVING] test.jpg
-2026-07-13 02:37:52,368 [INFO] server:    🤖 Asking Gemini to read label...
-2026-07-13 02:37:52,370 [WARNING] server:    ⏳ Rate limited (429). Retrying in 5s... (Attempt 1/3)
-2026-07-13 02:37:52,371 [WARNING] server:    ⏳ Rate limited (429). Retrying in 10s... (Attempt 2/3)
+2026-07-13 02:56:56,351 [INFO] server: 🔎 [RECEIVING] test.jpg
+2026-07-13 02:56:56,354 [INFO] server:    🤖 Asking Gemini to read label...
+2026-07-13 02:56:56,355 [WARNING] server:    ⏳ Rate limited (429). Retrying in 5s... (Attempt 1/3)
+2026-07-13 02:56:56,357 [WARNING] server:    ⏳ Rate limited (429). Retrying in 10s... (Attempt 2/3)

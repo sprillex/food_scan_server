@@ -34,6 +34,8 @@ class TestRetryLogic(unittest.IsolatedAsyncioTestCase):
         # Mock UploadFile
         mock_file = MagicMock()
         mock_file.filename = "test.jpg"
+        mock_file.read = AsyncMock(side_effect=[b"fake_image_data", b""])
+        mock_file.seek = AsyncMock()
 
         # Patch open to avoid file system ops
         with patch("builtins.open", unittest.mock.mock_open(read_data=b"fake_image_data")), \
@@ -65,6 +67,8 @@ class TestRetryLogic(unittest.IsolatedAsyncioTestCase):
         # Mock UploadFile
         mock_file = MagicMock()
         mock_file.filename = "test.jpg"
+        mock_file.read = AsyncMock(side_effect=[b"fake_image_data", b""])
+        mock_file.seek = AsyncMock()
 
         with patch("builtins.open", unittest.mock.mock_open(read_data=b"fake_image_data")), \
              patch("server.validate_and_save_image", return_value=None), \

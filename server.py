@@ -85,9 +85,26 @@ def cleanup_image_directory(folder_path: str):
     except Exception as e:
         logger.exception(f"Failed to clean up directory {folder_path}: {e}")
 
+# Maximum file size (5 MB)
+MAX_FILE_SIZE = 5 * 1024 * 1024
+
 @app.post("/analyze")
 async def analyze_evidence(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     logger.info(f"🔎 [RECEIVING] {file.filename}")
+
+    # 0. Validate File Size
+    # Read the file to determine size, avoiding loading massive files into memory
+    file_size = 0
+    while True:
+        chunk = await file.read(1024 * 1024) # read 1MB at a time
+        if not chunk:
+            break
+        file_size += len(chunk)
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail="File too large. Maximum size is 5MB.")
+
+    # Reset file pointer for later reading by PIL and Gemini
+    await file.seek(0)
 
     # 1. Save Image Temporarily with Validation
     case_id = uuid.uuid4().hex[:8]

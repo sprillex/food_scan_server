@@ -15,10 +15,10 @@ The project is a FastAPI backend designed to process images of food labels, extr
    - **Problem:** The test suite includes `tests/test_retry_logic.py`, which explicitly tests for the presence of a retry loop with exponential backoff when the Gemini API returns an HTTP 429 (Too Many Requests) error. However, `server.py` does not currently implement any retry logic, causing transient errors to immediately fail the request.
    - **Fix Strategy:** Implemented an asynchronous retry loop around the `client.models.generate_content` call, catching `ClientError`, verifying the 429 status code, and using `asyncio.sleep` with backoff before retrying (up to 3 attempts).
 
-3. **Missing File Size Validation**
+3. **Missing File Size Validation** - **[RESOLVED]**
    - **Location:** `server.py` (`/analyze` endpoint)
    - **Problem:** The endpoint accepts file uploads without verifying the file size. Malicious actors or erroneous clients could upload massive files, causing memory exhaustion (OOM) or rapid disk depletion (Denial of Service).
-   - **Fix Strategy:** Validate the `Content-Length` header or chunk sizes during upload to enforce a reasonable maximum file size limit (e.g., 5-10 MB) and reject larger files with an HTTP 413 Payload Too Large error.
+   - **Fix Strategy:** Implemented a size check by reading the uploaded file in chunks. If the file exceeds the 5MB limit, it raises an HTTP 413 "Payload Too Large" error before proceeding to save or analyze it.
 
 ## Documentation Audit
 
