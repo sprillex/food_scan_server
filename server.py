@@ -4,7 +4,7 @@ import uuid
 import json
 import asyncio
 import logging
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
 from google import genai
 from google.genai import types
 from google.genai.errors import ClientError
@@ -74,9 +74,36 @@ async def check_product(upc: str):
     else:
         return {"status": "not_found", "message": "Item unknown. Please scan label."}
 
+
+def cleanup_image_directory(folder_path: str):
+    """Securely deletes the temporary image directory."""
+    try:
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)
+            logger.info(f"🧹 Cleaned up temporary directory: {folder_path}")
+    except Exception as e:
+        logger.exception(f"Failed to clean up directory {folder_path}: {e}")
+
+# Maximum file size (5 MB)
+MAX_FILE_SIZE = 5 * 1024 * 1024
+
 @app.post("/analyze")
-async def analyze_evidence(file: UploadFile = File(...)):
+async def analyze_evidence(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     logger.info(f"🔎 [RECEIVING] {file.filename}")
+
+    # 0. Validate File Size
+    # Read the file to determine size, avoiding loading massive files into memory
+    file_size = 0
+    while True:
+        chunk = await file.read(1024 * 1024) # read 1MB at a time
+        if not chunk:
+            break
+        file_size += len(chunk)
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail="File too large. Maximum size is 5MB.")
+
+    # Reset file pointer for later reading by PIL and Gemini
+    await file.seek(0)
 
     # 1. Save Image Temporarily with Validation
     case_id = uuid.uuid4().hex[:8]
@@ -84,6 +111,9 @@ async def analyze_evidence(file: UploadFile = File(...)):
     os.makedirs(case_folder, exist_ok=True)
     image_path = os.path.join(case_folder, "evidence.jpg")
     
+    # Schedule cleanup to run after response is returned
+    background_tasks.add_task(cleanup_image_directory, case_folder)
+
     try:
         # Run blocking validation and file IO in thread
         await asyncio.to_thread(validate_and_save_image, file.file, image_path)
@@ -104,39 +134,54 @@ async def analyze_evidence(file: UploadFile = File(...)):
 
     # 3. CALL GEMINI (New SDK)
     logger.info("   🤖 Asking Gemini to read label...")
-    try:
-        # With the new SDK, we can pass the image directly if it's small, or upload it.
-        # For compatibility and large files, let's read it as bytes.
-        with open(image_path, "rb") as f:
-            image_bytes = f.read()
 
-        response = await asyncio.to_thread(
-            client.models.generate_content,
-            model='gemini-2.5-flash',
-            contents=[
-                prompt_text,
-                types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")
-            ]
-        )
+    max_retries = 3
+    base_delay = 5 # base delay for backoff
 
-        result_text = response.text
-        
-        # 4. PARSE RESPONSE
-        clean_json = result_text.replace("```json", "").replace("```", "").strip()
-        
+    for attempt in range(1, max_retries + 1):
         try:
-            analysis_data = json.loads(clean_json)
-            
-            # 5. LEARN (Save to DB)
-            await asyncio.to_thread(database.save_product_to_db, analysis_data)
-            
-            # 6. RETURN RESULT
-            return {"status": "success", "data": analysis_data, "source": "Gemini API"}
-            
-        except json.JSONDecodeError:
-            logger.warning("   ⚠️ Gemini returned invalid JSON.")
-            return {"status": "partial_success", "raw_text": result_text}
+            # With the new SDK, we can pass the image directly if it's small, or upload it.
+            # For compatibility and large files, let's read it as bytes.
+            with open(image_path, "rb") as f:
+                image_bytes = f.read()
 
-    except Exception as e:
-        logger.exception(f"   🔴 Error: {e}")
-        return {"status": "error", "message": str(e)}
+            response = await asyncio.to_thread(
+                client.models.generate_content,
+                model='gemini-2.5-flash',
+                contents=[
+                    prompt_text,
+                    types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")
+                ]
+            )
+
+            result_text = response.text
+            
+            # 4. PARSE RESPONSE
+            clean_json = result_text.replace("```json", "").replace("```", "").strip()
+            
+            try:
+                analysis_data = json.loads(clean_json)
+
+                # 5. LEARN (Save to DB)
+                await asyncio.to_thread(database.save_product_to_db, analysis_data)
+
+                # 6. RETURN RESULT
+                return {"status": "success", "data": analysis_data, "source": "Gemini API"}
+
+            except json.JSONDecodeError:
+                logger.warning("   ⚠️ Gemini returned invalid JSON.")
+                return {"status": "partial_success", "raw_text": result_text}
+
+        except ClientError as e:
+            if e.code == 429 and attempt < max_retries:
+                delay = base_delay * attempt
+                logger.warning(f"   ⏳ Rate limited (429). Retrying in {delay}s... (Attempt {attempt}/{max_retries})")
+                await asyncio.sleep(delay)
+                continue
+            
+            logger.exception(f"   🔴 Error: {e}")
+            return {"status": "error", "message": str(e)}
+
+        except Exception as e:
+            logger.exception(f"   🔴 Error: {e}")
+            return {"status": "error", "message": str(e)}

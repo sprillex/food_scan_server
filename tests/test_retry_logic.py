@@ -34,6 +34,8 @@ class TestRetryLogic(unittest.IsolatedAsyncioTestCase):
         # Mock UploadFile
         mock_file = MagicMock()
         mock_file.filename = "test.jpg"
+        mock_file.read = AsyncMock(side_effect=[b"fake_image_data", b""])
+        mock_file.seek = AsyncMock()
 
         # Patch open to avoid file system ops
         with patch("builtins.open", unittest.mock.mock_open(read_data=b"fake_image_data")), \
@@ -44,7 +46,9 @@ class TestRetryLogic(unittest.IsolatedAsyncioTestCase):
             # Patch asyncio.sleep to check if it was called and avoid waiting
             with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
 
-                result = await server.analyze_evidence(file=mock_file)
+                mock_bg_tasks = MagicMock()
+
+                result = await server.analyze_evidence(background_tasks=mock_bg_tasks, file=mock_file)
 
                 # Assertions
                 self.assertEqual(result['status'], 'success')
@@ -63,6 +67,8 @@ class TestRetryLogic(unittest.IsolatedAsyncioTestCase):
         # Mock UploadFile
         mock_file = MagicMock()
         mock_file.filename = "test.jpg"
+        mock_file.read = AsyncMock(side_effect=[b"fake_image_data", b""])
+        mock_file.seek = AsyncMock()
 
         with patch("builtins.open", unittest.mock.mock_open(read_data=b"fake_image_data")), \
              patch("server.validate_and_save_image", return_value=None), \
@@ -71,7 +77,9 @@ class TestRetryLogic(unittest.IsolatedAsyncioTestCase):
 
              with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
 
-                 result = await server.analyze_evidence(file=mock_file)
+                 mock_bg_tasks = MagicMock()
+
+                 result = await server.analyze_evidence(background_tasks=mock_bg_tasks, file=mock_file)
 
                  # Assertions
                  self.assertEqual(result['status'], 'error')
